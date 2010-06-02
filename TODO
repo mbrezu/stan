@@ -1,0 +1,73 @@
+
+* TODO
+** DONE see the FIXME about `<|>` and fix it.
+** DONE implement `BETWEEN`
+** DONE implement subqueries
+** DONE implement`EXISTS`, `IN`
+** DONE NOT versions for the above
+** DONE `ANY`, `SOME`, `ALL`
+** DONE list of items (expr, ...)
+** DONE table expressions (joins)
+** DONE warnings have a type
+** DONE Join:
+*** DONE OUTER is optional, not FULL. It is also optional for LEFT/RIGHT
+*** DONE add the USING Clause
+** DONE CASE in SELECT
+** DONE IF/THEN/ELSE/ELSIF
+** DONE LOOP statement
+** DONE add tests for Varchar, Varchar2
+** DONE CREATE OR REPLACE FUNCTION
+** DONE CREATE TABLE
+** DONE %ROWTYPE, %TYPE
+** DONE RECORD types
+** DONE transaction processing
+** DONE cursors
+*** DONE bulk collect
+**** DONE table types
+*** DONE cursor parameters
+**** DONE declaration
+**** DONE with for
+**** DONE with open
+*** DONE for with cursors
+**** DONE implicit
+**** DONE explicit
+** DONE convert positions-in-stream to line/col pairs
+** DONE SELECT INTO
+** TODO update
+** TODO delete
+** TODO insert
+** TODO drop
+** TODO alter table
+** TODO dynamic pl/sql
+*** TODO ref cursor
+*** TODO OPEN ... FOR
+*** TODO EXECUTE IMMEDIATE
+** TODO collections and records
+** TODO triggers
+** TODO indexes
+** TODO packages
+** TODO error handling
+** TODO CREATE TYPE, objects
+** DONE statement ignore (with warning)
+** TODO add tests for broken inputs (errors should be sane)
+** DONE simple abstract interpreter
+   that traces 'executed' instructions on the console. Need it to
+   figure out the abstract interpreter monad.
+** TODO Compiler
+   A translator from the parse tree to the intermediate representation
+   needed by the abstract interpreter.
+*** TODO Define the IR
+*** TODO Write interpreter for simple instructions
+    (with reference to the parse code, and with placeholders for
+    unknown instructions)
+*** DONE figure out monad
+*** TODO extend monad to support nested scopes and goto
+    test by enhancing the simple language that is used in absint.ml
+**** TODO add nested scopes and frames
+**** TODO add GOTO, BREAK and CONTINUE
+     (as in C, PLSQL has similar constructs - EXIT instead of BREAK)
+* Clarify usage:
+** `IS OF`
+
+* Delayed
+** MODEL clause in SELECT

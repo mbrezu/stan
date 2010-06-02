@@ -1,0 +1,10 @@
+
+digraph Code
+{
+        node [shape=record];
+        struct1 [shape=record,label="<f0> left|<f1> mid\ dle|<f2> right"];
+        struct2 [shape=record,label="<f0> one|<f1> two"];
+        struct3 [shape=record,label="{ block_name | labels | Code1\nCode2}"];
+        struct1 -> struct2;
+        struct1 -> struct3;
+}

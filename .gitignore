@@ -1,0 +1,6 @@
+bin/*
+%temp%/*
+TestResult.xml
+*.pyc
+.deps
+semantic.cache

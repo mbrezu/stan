@@ -1,0 +1,67 @@
+
+Abstract interpreter study
+
+Example 1:
+
+DECLARE
+  N NUMBER;
+BEGIN
+  N := 137;
+  WHILE N > 1
+  LOOP
+    IF N MOD 2 = 0 THEN
+      N := N / 2;
+    ELSE
+      N := 3 * N + 1;
+    END IF;
+  END LOOP;
+END;
+
+turned to blocks
+
+[
+<<Block1>>, Anonymous
+NewFrame;
+Declare("N");
+Assignment("N", Number 137);
+
+<<Block2>>, BlockName "While"
+Label("While");
+IfGoto(Not(GreaterThan(Var "N", Number 1)), "AfterWhile");
+
+<<Block3>>, Anonymous
+IfGoto(Equal(Mod(Var "N", Number 2), Number 0), "ElseBranch");
+
+<<Block4>>, Anonymous
+Assignment("N", Divide(Var "N", Number 2));
+Goto("AfterIf");
+
+<<Block5>>, BlockName "ElseBranch"
+Label("ElseBranch");
+Assignment("N", Add(Multiply(Number 3, Var "N"), Number 1));
+
+<<Block6>>, BlockName "AfterIf"
+Label("AfterIf");
+Goto("While");
+
+<<Block7>>, BlockName "AfterWhile"
+Label("AfterWhile");
+KillFrame;
+]
+
+B1 -> B2
+B2 -> B3
+B2 -> B7
+B3 -> B4
+B3 -> B5
+B4 -> B6
+B5 -> B6
+B6 -> B2
+
+Rules for breaking into blocks:
+1. Start block at the beginning
+
+2. Start block before label (if there are multiple labels, associate
+them with all with the same block).
+
+3. Start block after jumps (conditional or not)
