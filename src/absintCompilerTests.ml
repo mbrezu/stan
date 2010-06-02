@@ -296,7 +296,32 @@ BEGIN
     N := N + 1;
   END LOOP;
 END;"
-    [];;
+    [AddFrame;
+     Declare ("N", (Number (2, 0), Pos (13, 21)));
+     Assignment ((Identifier "N", Pos (32, 32)),
+                 (NumericLiteral "1", Pos (37, 37)));
+     Label "BeforeWhile_1";
+     GotoIf
+       ((BinaryOp ("<=",
+                   (Identifier "N", Pos (48, 48)),
+                   (NumericLiteral "10", Pos (53, 54))),
+         Pos (48, 54)),
+        "WhileBodyStart_3", "AfterWhile_2");
+     Label "WhileBodyStart_3";
+     Call
+       ((BinaryOp (".",
+                   (Identifier "DBMS_OUTPUT", Pos (67, 77)),
+                   (Identifier "PUT_LINE", Pos (79, 86))),
+         Pos (67, 86)),
+        [(Identifier "N", Pos (88, 88))]);
+     Assignment ((Identifier "N", Pos (96, 96)),
+                 (BinaryOp ("+",
+                            (Identifier "N", Pos (101, 101)),
+                            (NumericLiteral "1", Pos (105, 105))),
+                  Pos (101, 105)));
+     Goto ("BeforeWhile_1", None);
+     Label "AfterWhile_2";
+     DeleteFrame];;
 
 let suite = "Absint tests" >::: [
   "test_compile_simple_program" >:: test_compile_simple_program;
@@ -308,5 +333,5 @@ let suite = "Absint tests" >::: [
   "test_compile_loop_exit" >:: test_compile_loop_exit;
   "test_compile_labeled_loop_exit" >:: test_compile_labeled_loop_exit;
   "test_compile_labeled_nested_loop_exit" >:: test_compile_labeled_nested_loop_exit;
-  (* "test_compile_while" >:: test_compile_while; *)
+  "test_compile_while" >:: test_compile_while;
 ];;

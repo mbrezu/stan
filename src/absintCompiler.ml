@@ -85,13 +85,15 @@ let rec compile ast =
         failwith "Unknown ast type."
 
 and compile_while loop_label exit_label expr stmts =
+  let body_start_label = gensym "WhileBodyStart" in
   push_labels [loop_label; exit_label]
-  <+> (add_ir <| Label loop_label)
-  (* <+> (add_ir <| GotoIf( *)
-  <+> (compile_stmt_list stmts)
-  <+> (add_ir <| Goto(loop_label, None))
-  <+> (add_ir <| Label exit_label)
-  <+> pop_labels ()
+    <+> (add_ir <| Label loop_label)
+    <+> (add_ir <| GotoIf(expr, body_start_label, exit_label))
+    <+> (add_ir <| Label body_start_label)
+    <+> (compile_stmt_list stmts)
+    <+> (add_ir <| Goto(loop_label, None))
+    <+> (add_ir <| Label exit_label)
+    <+> pop_labels ()
 
 and compile_loop loop_label exit_label stmts =
   push_labels [loop_label; exit_label]
