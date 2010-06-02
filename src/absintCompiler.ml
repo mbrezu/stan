@@ -70,9 +70,9 @@ let rec compile ast =
              | _ ->
                  failwith "STAN internal error.")
     | StmtExitWhen(expr, maybe_label), _ ->
-        (get_state >>= fun (labels, _, _) ->
+        (get_state >>= fun (private_state, public_state) ->
            let next_insn = gensym "Next" in
-             match (labels, maybe_label) with
+             match (private_state.label_stack, maybe_label) with
                | _, Some label ->
                    (add_ir <| GotoIf(expr, loop_exit_label_user label, next_insn))
                    <+> (add_ir <| Label next_insn)
@@ -131,8 +131,8 @@ and compile_stmt_list stmts =
 
 let compile_for_absint ast =
   reset_gensym ();
-  let (_, irs, _), _ = run_compiler (compile ast) Acm.empty_state in
-    List.rev irs;;
+  let (_, public_state), _ = run_compiler (compile ast) Acm.empty_state in
+    List.rev public_state.ir_list;;
 
 let compile_helper str =
   let _, result = PlsqlParser.parse2 str in
