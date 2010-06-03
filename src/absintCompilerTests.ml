@@ -323,6 +323,20 @@ END;"
      Label "AfterWhile_2";
      DeleteFrame];;
 
+let test_label_depth_helper str expected =
+  parse2_cont str (fun ast ->
+                     let label_depths = compute_label_depth ast |> list_of_map in
+                       assert_equal expected label_depths);;
+
+let test_label_depth_1 () =
+  test_label_depth_helper
+    "
+BEGIN
+  <<label1>>
+  N := 1;
+END;"
+    [("LABEL1", 1)];;
+
 let suite = "Absint tests" >::: [
   "test_compile_simple_program" >:: test_compile_simple_program;
   "test_compile_assignment" >:: test_compile_assignment;
@@ -334,4 +348,7 @@ let suite = "Absint tests" >::: [
   "test_compile_labeled_loop_exit" >:: test_compile_labeled_loop_exit;
   "test_compile_labeled_nested_loop_exit" >:: test_compile_labeled_nested_loop_exit;
   "test_compile_while" >:: test_compile_while;
+
+  (* Label depth tests - will expand if label depths prove useful. *)
+  "test_label_depth_1" >:: test_label_depth_1;
 ];;

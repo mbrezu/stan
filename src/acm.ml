@@ -41,7 +41,7 @@ let empty_state = (empty_private_state, empty_public_state);;
 let add_ir ir =
   get_state >>= fun (private_state, public_state) ->
     set_state (private_state,
-               { public_state with ir_list = ir :: public_state.ir_list});;
+               { public_state with ir_list = ir :: public_state.ir_list });;
 
 let push_labels labels =
   get_state >>= fun (private_state, public_state) ->
@@ -60,6 +60,20 @@ let pop_labels () =
 let add_message message =
   get_state >>= fun (private_state, public_state) ->
     set_state (private_state,
-               { public_state with messages = message :: public_state.messages })
+               { public_state with messages = message :: public_state.messages });;
+
+let add_frame () =
+  get_state >>= fun (private_state, public_state) ->
+    set_state ({ private_state with env_depth = private_state.env_depth + 1 },
+               public_state);;
+
+let delete_frame () =
+  get_state >>= fun (private_state, public_state) ->
+    set_state ({ private_state with env_depth = private_state.env_depth - 1 },
+               public_state);;
+
+let get_env_depth () =
+  get_state >>= fun (private_state, public_state) ->
+    result private_state.env_depth;;
 
 let (<+>) m1 m2 = m1 >>= fun _ -> m2;;

@@ -29,6 +29,35 @@ let loop_label_user label = sprintf "UserLabel_%s_BeforeLoop" label;;
 
 let loop_exit_label_user label = sprintf "UserLabel_%s_AfterLoop" label;;
 
+let compute_label_depth ast =
+  let rec cld_impl ast map depth =
+    match ast with
+      | Program(stmts), _
+      | StmtLoop(stmts, _), _ ->
+          cld_statement_list stmts map depth
+      | Block(_, stmts), _ ->
+          cld_statement_list stmts map (depth + 1)
+      | StmtLabeled(label, stmt), _ ->
+          let new_map = StringMap.add label depth map in
+            cld_impl stmt new_map depth
+      | StmtWhile(expr, body), _ ->
+          (match body with
+             | StmtLoop(stmts, _), _ ->
+                 cld_statement_list stmts map depth
+             | _ ->
+                 failwith "STAN internal error.")
+      | _ ->
+          map
+  and cld_statement_list stmts map depth =
+    match stmts with
+      | hd :: tl ->
+          let new_map = cld_impl hd map depth in
+            cld_statement_list tl new_map depth
+      | [] ->
+          map
+  in
+    cld_impl ast StringMap.empty 0;;
+
 let rec compile ast =
   match ast with
     | Program(stmts), _ ->
@@ -134,11 +163,14 @@ let compile_for_absint ast =
   let (_, public_state), _ = run_compiler (compile ast) Acm.empty_state in
     List.rev public_state.ir_list;;
 
-let compile_helper str =
+let parse2_cont str cont =
   let _, result = PlsqlParser.parse2 str in
     match result with
       | Some (_, ast) ->
-          compile_for_absint ast
+          cont ast
       | None ->
           failwith "Parse failed.";;
+
+let compile_helper str =
+  parse2_cont str compile_for_absint;;
 

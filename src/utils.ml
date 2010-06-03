@@ -18,3 +18,12 @@ let map_of_list list =
   in
     mol_iter StringMap.empty list;;
 
+let list_of_map map =
+  let list =
+    StringMap.fold
+      (fun key value list -> (key, value) :: list)
+      map
+      []
+  in
+    List.sort compare list;;
+

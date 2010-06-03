@@ -18,6 +18,7 @@ open AbsintCompiler;;
 #require "oUnit";;
 
 open OUnit;;
+open Utils;;
 
 #print_depth 10000;;
 #print_length 10000;;
