@@ -25,6 +25,8 @@ end;;
 
 open Gensym;;
 
+let genpos = ParserTypes.Pos(0, 0);;
+
 let loop_label_user label = sprintf "UserLabel_%s_BeforeLoop" label;;
 
 let loop_exit_label_user label = sprintf "UserLabel_%s_AfterLoop" label;;
@@ -64,9 +66,11 @@ let rec compile ast =
         compile_stmt_list stmts
     | Block(declarations, statements), _ ->
         add_ir AddFrame
+        <+> (add_frame ())
         <+> compile_stmt_list declarations
         <+> compile_stmt_list statements
         <+> add_ir DeleteFrame
+        <+> (delete_frame ())
     | StmtNull, _ ->
         result ()
     | VarDecl(var_name, var_type), _ ->
@@ -98,6 +102,14 @@ let rec compile ast =
                  compile_while loop_label exit_label expr stmts
              | _ ->
                  failwith "STAN internal error.")
+    | StmtFor(var, reverse, start_expr, end_expr, body), _ ->
+        let loop_label = gensym "BeforeFor" in
+        let exit_label = gensym "AfterFor" in
+          (match body with
+             | StmtLoop(stmts, _), _ ->
+                 compile_for var reverse start_expr end_expr loop_label exit_label stmts
+             | _ ->
+                 failwith "STAN internal error.")
     | StmtExitWhen(expr, maybe_label), _ ->
         (get_state >>= fun (private_state, public_state) ->
            let next_insn = gensym "Next" in
@@ -113,9 +125,41 @@ let rec compile ast =
     | _ ->
         failwith "Unknown ast type."
 
+and compile_for var reverse start_expr end_expr loop_label exit_label stmts =
+  let extract_var_str =
+    match var with
+      | Identifier(str), _ ->
+          str
+      | _ ->
+          failwith "STAN internal error."
+  in
+  let compare_operator = if not reverse then "<=" else ">=" in
+  let increment_operator = if not reverse then "+" else "-" in
+  let body_start_label = gensym "ForBodyStart" in
+    push_labels [loop_label; exit_label]
+    <+> (add_ir <| AddFrame)
+    <+> (add_frame ())
+    <+> (add_ir <| Declare(extract_var_str, (Number(38, 127), genpos)))
+    <+> (add_ir <| Assignment(var, start_expr))
+    <+> (add_ir <| Label loop_label)
+    <+> (add_ir <| GotoIf((BinaryOp(compare_operator, var, end_expr), genpos),
+                          body_start_label,
+                          exit_label))
+    <+> (add_ir <| Label body_start_label)
+    <+> (compile_stmt_list stmts)
+    <+> (add_ir <| Assignment(var, (BinaryOp(increment_operator,
+                                             var,
+                                             (NumericLiteral("1"), genpos)),
+                                    genpos)))
+    <+> (add_ir <| Goto(loop_label, None))
+    <+> (add_ir <| Label exit_label)
+    <+> (add_ir <| DeleteFrame)
+    <+> (delete_frame ())
+    <+> pop_labels ()
+
 and compile_while loop_label exit_label expr stmts =
   let body_start_label = gensym "WhileBodyStart" in
-  push_labels [loop_label; exit_label]
+    push_labels [loop_label; exit_label]
     <+> (add_ir <| Label loop_label)
     <+> (add_ir <| GotoIf(expr, body_start_label, exit_label))
     <+> (add_ir <| Label body_start_label)

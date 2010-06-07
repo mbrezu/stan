@@ -323,6 +323,44 @@ END;"
      Label "AfterWhile_2";
      DeleteFrame];;
 
+let test_compile_for () =
+  compile_test_helper
+    "
+BEGIN
+  FOR N IN 1..10
+  LOOP
+    DBMS_OUTPUT.PUT_LINE(N);
+  END LOOP;
+END;"
+    [AddFrame;
+     AddFrame;
+     Declare ("N", (Number (38, 127), Pos (0, 0)));
+     Assignment ((Identifier "N", Pos (13, 13)),
+                 (NumericLiteral "1", Pos (18, 18)));
+     Label "BeforeFor_1";
+     GotoIf
+       ((BinaryOp ("<=",
+                   (Identifier "N", Pos (13, 13)),
+                   (NumericLiteral "10", Pos (21, 22))),
+         Pos (0, 0)),
+        "ForBodyStart_3", "AfterFor_2");
+     Label "ForBodyStart_3";
+     Call
+       ((BinaryOp (".",
+                   (Identifier "DBMS_OUTPUT", Pos (35, 45)),
+                   (Identifier "PUT_LINE", Pos (47, 54))),
+         Pos (35, 54)),
+        [(Identifier "N", Pos (56, 56))]);
+     Assignment ((Identifier "N", Pos (13, 13)),
+                 (BinaryOp ("+",
+                            (Identifier "N", Pos (13, 13)),
+                            (NumericLiteral "1", Pos (0, 0))),
+                  Pos (0, 0)));
+     Goto ("BeforeFor_1", None);
+     Label "AfterFor_2";
+     DeleteFrame;
+     DeleteFrame];;
+
 let test_label_depth_helper str expected =
   parse2_cont str (fun ast ->
                      let label_depths = compute_label_depth ast |> list_of_map in
@@ -348,6 +386,7 @@ let suite = "Absint tests" >::: [
   "test_compile_labeled_loop_exit" >:: test_compile_labeled_loop_exit;
   "test_compile_labeled_nested_loop_exit" >:: test_compile_labeled_nested_loop_exit;
   "test_compile_while" >:: test_compile_while;
+  "test_compile_for" >:: test_compile_for;
 
   (* Label depth tests - will expand if label depths prove useful. *)
   "test_label_depth_1" >:: test_label_depth_1;
