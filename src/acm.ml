@@ -3,6 +3,7 @@
 
 open Utils;;
 open Absint.Ir;;
+open Printf;;
 
 type ('a, 'b) compiler_monad = CompilerM of ('a -> 'a * 'b);;
 
@@ -31,12 +32,15 @@ type acm_private_state = { label_stack: acm_label_stack_level list;
                            env_depth: int;
                            label_depths: int StringMap.t;
                            active_label: string option;
+                           gensym_counter: int;
                          };;
 
 let empty_private_state = { label_stack = [];
                             env_depth = 0;
                             label_depths = StringMap.empty;
-                            active_label = None };;
+                            active_label = None;
+                            gensym_counter = 1;
+                          };;
 
 type acm_public_state = { ir_list: ir list;
                           messages: string list;
@@ -118,4 +122,12 @@ let get_active_label () =
     result private_state.active_label;;
 
 let (<+>) m1 m2 = m1 >>= fun _ -> m2;;
+
+let gensym prefix =
+  get_state >>= fun (private_state, public_state) ->
+    let gensym_result = sprintf "%s_%d" prefix private_state.gensym_counter in
+      set_state ({ private_state with gensym_counter = private_state.gensym_counter + 1; },
+                 public_state)
+      <+> (result gensym_result)
+
 
