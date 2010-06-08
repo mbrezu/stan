@@ -361,6 +361,120 @@ END;"
      DeleteFrame;
      DeleteFrame];;
 
+let test_compile_for_nested_block () =
+  compile_test_helper
+    "
+BEGIN
+  FOR N IN 1..10
+  LOOP
+    DECLARE
+      M NUMBER(3);
+    BEGIN
+      EXIT WHEN M IS NULL;
+      DBMS_OUTPUT.PUT_LINE(N + M);
+    END;
+  END LOOP;
+END;"
+    [AddFrame;
+     AddFrame;
+     Declare ("N", (Number (38, 127), Pos (0, 0)));
+     Assignment ((Identifier "N", Pos (13, 13)),
+                 (NumericLiteral "1", Pos (18, 18)));
+     Label "BeforeFor_1";
+     GotoIf
+       ((BinaryOp ("<=",
+                   (Identifier "N", Pos (13, 13)),
+                   (NumericLiteral "10", Pos (21, 22))),
+         Pos (0, 0)),
+        "ForBodyStart_3", "AfterFor_2");
+     Label "ForBodyStart_3";
+     AddFrame;
+     Declare ("M", (Number (3, 0), Pos (51, 59)));
+     GotoIf
+       ((IsNull (Identifier "M", Pos (88, 88)),
+         Pos (88, 96)),
+        "DischargeEnv_5", "Next_4");
+     Label "DischargeEnv_5";
+     DeleteFrame;
+     Goto ("AfterFor_2", None);
+     Label "Next_4";
+     Call
+       ((BinaryOp (".",
+                   (Identifier "DBMS_OUTPUT", Pos (105, 115)),
+                   (Identifier "PUT_LINE", Pos (117, 124))),
+         Pos (105, 124)),
+        [(BinaryOp ("+",
+                    (Identifier "N", Pos (126, 126)),
+                    (Identifier "M", Pos (130, 130))),
+          Pos (126, 130))]);
+     DeleteFrame;
+     Assignment ((Identifier "N", Pos (13, 13)),
+                 (BinaryOp ("+",
+                            (Identifier "N", Pos (13, 13)),
+                            (NumericLiteral "1", Pos (0, 0))),
+                  Pos (0, 0)));
+     Goto ("BeforeFor_1", None);
+     Label "AfterFor_2";
+     DeleteFrame;
+     DeleteFrame];;
+
+let test_compile_nested_for () =
+  compile_test_helper
+    "
+BEGIN
+  <<outer>>
+  FOR M IN 1..10
+  LOOP
+    FOR N IN 1..10
+    LOOP
+      EXIT outer WHEN M = 2;
+      DBMS_OUTPUT.PUT_LINE(N + M);
+    END LOOP;
+  END LOOP;
+END;"
+    [AddFrame;
+     AddFrame;
+     Declare ("N", (Number (38, 127), Pos (0, 0)));
+     Assignment ((Identifier "N", Pos (13, 13)),
+                 (NumericLiteral "1", Pos (18, 18)));
+     Label "BeforeFor_1";
+     GotoIf
+       ((BinaryOp ("<=",
+                   (Identifier "N", Pos (13, 13)),
+                   (NumericLiteral "10", Pos (21, 22))),
+         Pos (0, 0)),
+        "ForBodyStart_3", "AfterFor_2");
+     Label "ForBodyStart_3";
+     AddFrame;
+     Declare ("M", (Number (3, 0), Pos (51, 59)));
+     GotoIf
+       ((IsNull (Identifier "M", Pos (88, 88)),
+         Pos (88, 96)),
+        "DischargeEnv_5", "Next_4");
+     Label "DischargeEnv_5";
+     DeleteFrame;
+     Goto ("AfterFor_2", None);
+     Label "Next_4";
+     Call
+       ((BinaryOp (".",
+                   (Identifier "DBMS_OUTPUT", Pos (105, 115)),
+                   (Identifier "PUT_LINE", Pos (117, 124))),
+         Pos (105, 124)),
+        [(BinaryOp ("+",
+                    (Identifier "N", Pos (126, 126)),
+                    (Identifier "M", Pos (130, 130))),
+          Pos (126, 130))]);
+     DeleteFrame;
+     Assignment ((Identifier "N", Pos (13, 13)),
+                 (BinaryOp ("+",
+                            (Identifier "N", Pos (13, 13)),
+                            (NumericLiteral "1", Pos (0, 0))),
+                  Pos (0, 0)));
+     Goto ("BeforeFor_1", None);
+     Label "AfterFor_2";
+     DeleteFrame;
+     DeleteFrame];;
+
 let test_label_depth_helper str expected =
   parse2_cont str (fun ast ->
                      let label_depths = compute_label_depth ast |> list_of_map in
@@ -387,6 +501,8 @@ let suite = "Absint tests" >::: [
   "test_compile_labeled_nested_loop_exit" >:: test_compile_labeled_nested_loop_exit;
   "test_compile_while" >:: test_compile_while;
   "test_compile_for" >:: test_compile_for;
+  "test_compile_for_nested_block" >:: test_compile_for_nested_block;
+  "test_compile_nested_for" >:: test_compile_nested_for;
 
   (* Label depth tests - will expand if label depths prove useful. *)
   "test_label_depth_1" >:: test_label_depth_1;
