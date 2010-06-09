@@ -56,12 +56,14 @@
 ** TODO Compiler
    A translator from the parse tree to the intermediate representation
    needed by the abstract interpreter.
-*** TODO Define the IR
+*** TODO tests for WHILE with label (nested whiles too)
+*** TODO test with three levels of for nesting
+*** DONE Define the IR
 *** TODO Write interpreter for simple instructions
     (with reference to the parse code, and with placeholders for
     unknown instructions)
 *** DONE figure out monad
-*** TODO extend monad to support nested scopes and goto
+*** DONE extend monad to support nested scopes and goto
     test by enhancing the simple language that is used in absint.ml
 **** TODO add nested scopes and frames
 **** TODO add GOTO, BREAK and CONTINUE

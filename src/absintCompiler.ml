@@ -23,7 +23,14 @@ let compute_label_depth ast =
       | Block(_, stmts), _ ->
           cld_statement_list stmts map (depth + 1)
       | StmtLabeled(label, stmt), _ ->
-          let new_map = StringMap.add label depth map in
+          let label_depth =
+            match stmt with
+              | StmtFor(_, _, _, _, _), _ ->
+                  depth + 1
+              | _ ->
+                  depth
+          in
+          let new_map = StringMap.add label label_depth map in
             cld_impl stmt new_map depth
       | StmtWhile(expr, body), _ ->
           (match body with
@@ -82,68 +89,52 @@ let rec compile ast =
     | StmtLoop(stmts, _), _ ->
         compile_loop stmts
     | StmtWhile(expr, body), _ ->
-        (gensym "BeforeWhile" >>= fun loop_label ->
-           gensym "AfterWhile" >>= fun exit_label ->
-             match body with
-               | StmtLoop(stmts, _), _ ->
-                   compile_while loop_label exit_label expr stmts
-               | _ ->
-                   failwith "STAN internal error.")
+        (match body with
+           | StmtLoop(stmts, _), _ ->
+               compile_while expr stmts
+           | _ ->
+               failwith "STAN internal error (body of WHILE must be LOOP).")
     | StmtFor(var, reverse, start_expr, end_expr, body), _ ->
-        (gensym "BeforeFor" >>= fun loop_label ->
-           gensym "AfterFor" >>= fun exit_label ->
-             match body with
-               | StmtLoop(stmts, _), _ ->
-                   compile_for var reverse start_expr end_expr loop_label exit_label stmts
-               | _ ->
-                   failwith "STAN internal error.")
+        (match body with
+           | StmtLoop(stmts, _), _ ->
+               compile_for var reverse start_expr end_expr stmts
+           | _ ->
+               failwith "STAN internal error (body of FOR must be LOOP).")
     | StmtExitWhen(expr, maybe_label), _ ->
         (gensym "Next" >>= fun next_insn ->
            get_env_depth () >>= fun current_depth ->
-             labels_top () >>= fun { depth = labels_depth; labels = top_labels } ->
-               match (top_labels, maybe_label) with
-                 | _, Some label ->
-                     (get_label_depth label >>= fun label_depth ->
-                        (* FIXME: should factor out code here. *)
-                        (* FIXME: should add an error message if
-                           current_depth < label_depth *)
-                        if current_depth > label_depth
-                        then
-                          (let depth_diff = current_depth - label_depth in
-                           let delete_frame_block =
-                             repeat_acm (add_ir <| DeleteFrame) depth_diff
-                           in
-                             (gensym "DischargeEnv") >>= fun discharge_env_label ->
-                               (add_ir <| GotoIf(expr, discharge_env_label, next_insn))
-                               <+> (add_ir <| Label discharge_env_label)
-                               <+> delete_frame_block
-                               <+> (add_ir <| Goto(loop_exit_label_user label, None))
-                               <+> (add_ir <| Label next_insn))
-                        else
-                          ((add_ir <| GotoIf(expr, loop_exit_label_user label, next_insn))
-                           <+> (add_ir <| Label next_insn)))
-                 | [_; after], _ ->
-                     if current_depth > labels_depth
-                     then
-                       (let depth_diff = current_depth - labels_depth in
-                        let delete_frame_block =
-                          repeat_acm (add_ir <| DeleteFrame) depth_diff
-                        in
-                          gensym "DischargeEnv" >>= fun discharge_env_label ->
-                            (add_ir <| GotoIf(expr, discharge_env_label, next_insn))
-                            <+> (add_ir <| Label discharge_env_label)
-                            <+> delete_frame_block
-                            <+> (add_ir <| Goto(after, None))
-                            <+> (add_ir <| Label next_insn))
-                     else
-                       ((add_ir <| GotoIf(expr, after, next_insn))
+             labels_top () >>= fun { depth = top_labels_depth; labels = top_labels } ->
+               let discharger label_depth after_label =
+                 (* FIXME: should add an error message if
+                    current_depth < label_depth *)
+                 if current_depth > label_depth
+                 then
+                   (let depth_diff = current_depth - label_depth in
+                    let delete_frame_block =
+                      repeat_acm (add_ir <| DeleteFrame) depth_diff
+                    in
+                      (gensym "DischargeEnv") >>= fun discharge_env_label ->
+                        (add_ir <| GotoIf(expr, discharge_env_label, next_insn))
+                        <+> (add_ir <| Label discharge_env_label)
+                        <+> delete_frame_block
+                        <+> (add_ir <| Goto(after_label, None))
                         <+> (add_ir <| Label next_insn))
-                 | _ ->
-                     failwith "STAN internal error.")
+                 else
+                   ((add_ir <| GotoIf(expr, after_label, next_insn))
+                    <+> (add_ir <| Label next_insn))
+               in
+                 match (top_labels, maybe_label) with
+                   | _, Some label ->
+                       (get_label_depth label >>= fun label_depth ->
+                          discharger label_depth (loop_exit_label_user label))
+                   | [_; after], _ ->
+                       discharger top_labels_depth after
+                   | _ ->
+                       failwith "STAN internal error.")
     | _ ->
         failwith "Unknown ast type."
 
-and compile_for var reverse start_expr end_expr loop_label exit_label stmts =
+and compile_for var reverse start_expr end_expr stmts =
   let extract_var_str =
     match var with
       | Identifier(str), _ ->
@@ -153,57 +144,60 @@ and compile_for var reverse start_expr end_expr loop_label exit_label stmts =
   in
   let compare_operator = if not reverse then "<=" else ">=" in
   let increment_operator = if not reverse then "+" else "-" in
-    gensym "ForBodyStart" >>= fun body_start_label ->
-      (add_ir <| AddFrame)
-      <+> (add_frame ())
-      <+> (push_labels [loop_label; exit_label])
-      <+> (add_ir <| Declare(extract_var_str, (Number(38, 127), genpos)))
-      <+> (add_ir <| Assignment(var, start_expr))
-      <+> (add_ir <| Label loop_label)
-      <+> (add_ir <| GotoIf((BinaryOp(compare_operator, var, end_expr), genpos),
-                            body_start_label,
-                            exit_label))
-      <+> (add_ir <| Label body_start_label)
-      <+> (compile_stmt_list stmts)
-      <+> (add_ir <| Assignment(var, (BinaryOp(increment_operator,
-                                               var,
-                                               (NumericLiteral("1"), genpos)),
-                                      genpos)))
-      <+> (add_ir <| Goto(loop_label, None))
-      <+> (add_ir <| Label exit_label)
-      <+> (pop_labels ())
-      <+> (add_ir <| DeleteFrame)
-      <+> (delete_frame ())
+    get_labels () >>= fun (loop_label, exit_label) ->
+      gensym "ForBodyStart" >>= fun body_start_label ->
+        (add_ir <| AddFrame)
+        <+> (add_frame ())
+        <+> (push_labels [loop_label; exit_label])
+        <+> (add_ir <| Declare(extract_var_str, (Number(38, 127), genpos)))
+        <+> (add_ir <| Assignment(var, start_expr))
+        <+> (add_ir <| Label loop_label)
+        <+> (add_ir <| GotoIf((BinaryOp(compare_operator, var, end_expr), genpos),
+                              body_start_label,
+                              exit_label))
+        <+> (add_ir <| Label body_start_label)
+        <+> (compile_stmt_list stmts)
+        <+> (add_ir <| Assignment(var, (BinaryOp(increment_operator,
+                                                 var,
+                                                 (NumericLiteral("1"), genpos)),
+                                        genpos)))
+        <+> (add_ir <| Goto(loop_label, None))
+        <+> (add_ir <| Label exit_label)
+        <+> (pop_labels ())
+        <+> (add_ir <| DeleteFrame)
+        <+> (delete_frame ())
 
-and compile_while loop_label exit_label expr stmts =
-  gensym "WhileBodyStart" >>= fun body_start_label ->
-    push_labels [loop_label; exit_label]
-    <+> (add_ir <| Label loop_label)
-    <+> (add_ir <| GotoIf(expr, body_start_label, exit_label))
-    <+> (add_ir <| Label body_start_label)
-    <+> (compile_stmt_list stmts)
-    <+> (add_ir <| Goto(loop_label, None))
-    <+> (add_ir <| Label exit_label)
-    <+> pop_labels ()
-
-and compile_loop stmts =
-  let get_labels =
-    get_active_label () >>= function
-      | None ->
-          (gensym "BeforeLoop" >>= fun loop_label ->
-             gensym "AfterLoop" >>= fun exit_label ->
-               result (loop_label, exit_label))
-      | Some label ->
-          result (loop_label_user label,
-                  loop_exit_label_user label)
-  in
-    get_labels >>= fun (loop_label, exit_label) ->
+and compile_while expr stmts =
+  get_labels () >>= fun (loop_label, exit_label) ->
+    gensym "WhileBodyStart" >>= fun body_start_label ->
       push_labels [loop_label; exit_label]
       <+> (add_ir <| Label loop_label)
+      <+> (add_ir <| GotoIf(expr, body_start_label, exit_label))
+      <+> (add_ir <| Label body_start_label)
       <+> (compile_stmt_list stmts)
       <+> (add_ir <| Goto(loop_label, None))
       <+> (add_ir <| Label exit_label)
       <+> pop_labels ()
+
+and get_labels () =
+  get_active_label () >>= function
+    | None ->
+        (gensym "BeforeLoop" >>= fun loop_label ->
+           gensym "AfterLoop" >>= fun exit_label ->
+             result (loop_label, exit_label))
+    | Some label ->
+        clear_active_label ()
+        <+> result (loop_label_user label,
+                    loop_exit_label_user label)
+
+and compile_loop stmts =
+  get_labels () >>= fun (loop_label, exit_label) ->
+    push_labels [loop_label; exit_label]
+    <+> (add_ir <| Label loop_label)
+    <+> (compile_stmt_list stmts)
+    <+> (add_ir <| Goto(loop_label, None))
+    <+> (add_ir <| Label exit_label)
+    <+> pop_labels ()
 
 and compile_if cond then_clause else_clause =
   gensym "Then" >>= fun then_label ->

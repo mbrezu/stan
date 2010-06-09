@@ -214,6 +214,7 @@ END;"
      Declare ("N", (Number (2, 0), Pos (13, 21)));
      Assignment ((Identifier "N", Pos (32, 32)),
                  (NumericLiteral "1", Pos (37, 37)));
+     Label "UserLabel_OUTER";
      Label "UserLabel_OUTER_BeforeLoop";
      Call
        ((BinaryOp (".",
@@ -257,6 +258,7 @@ END;"
      Declare ("N", (Number (2, 0), Pos (13, 21)));
      Assignment ((Identifier "N", Pos (32, 32)),
                  (NumericLiteral "1", Pos (37, 37)));
+     Label "UserLabel_OUTER";
      Label "UserLabel_OUTER_BeforeLoop";
      Call
        ((BinaryOp (".",
@@ -300,13 +302,13 @@ END;"
      Declare ("N", (Number (2, 0), Pos (13, 21)));
      Assignment ((Identifier "N", Pos (32, 32)),
                  (NumericLiteral "1", Pos (37, 37)));
-     Label "BeforeWhile_1";
+     Label "BeforeLoop_1";
      GotoIf
        ((BinaryOp ("<=",
                    (Identifier "N", Pos (48, 48)),
                    (NumericLiteral "10", Pos (53, 54))),
          Pos (48, 54)),
-        "WhileBodyStart_3", "AfterWhile_2");
+        "WhileBodyStart_3", "AfterLoop_2");
      Label "WhileBodyStart_3";
      Call
        ((BinaryOp (".",
@@ -319,8 +321,8 @@ END;"
                             (Identifier "N", Pos (101, 101)),
                             (NumericLiteral "1", Pos (105, 105))),
                   Pos (101, 105)));
-     Goto ("BeforeWhile_1", None);
-     Label "AfterWhile_2";
+     Goto ("BeforeLoop_1", None);
+     Label "AfterLoop_2";
      DeleteFrame];;
 
 let test_compile_for () =
@@ -337,13 +339,13 @@ END;"
      Declare ("N", (Number (38, 127), Pos (0, 0)));
      Assignment ((Identifier "N", Pos (13, 13)),
                  (NumericLiteral "1", Pos (18, 18)));
-     Label "BeforeFor_1";
+     Label "BeforeLoop_1";
      GotoIf
        ((BinaryOp ("<=",
                    (Identifier "N", Pos (13, 13)),
                    (NumericLiteral "10", Pos (21, 22))),
          Pos (0, 0)),
-        "ForBodyStart_3", "AfterFor_2");
+        "ForBodyStart_3", "AfterLoop_2");
      Label "ForBodyStart_3";
      Call
        ((BinaryOp (".",
@@ -356,8 +358,8 @@ END;"
                             (Identifier "N", Pos (13, 13)),
                             (NumericLiteral "1", Pos (0, 0))),
                   Pos (0, 0)));
-     Goto ("BeforeFor_1", None);
-     Label "AfterFor_2";
+     Goto ("BeforeLoop_1", None);
+     Label "AfterLoop_2";
      DeleteFrame;
      DeleteFrame];;
 
@@ -380,13 +382,13 @@ END;"
      Declare ("N", (Number (38, 127), Pos (0, 0)));
      Assignment ((Identifier "N", Pos (13, 13)),
                  (NumericLiteral "1", Pos (18, 18)));
-     Label "BeforeFor_1";
+     Label "BeforeLoop_1";
      GotoIf
        ((BinaryOp ("<=",
                    (Identifier "N", Pos (13, 13)),
                    (NumericLiteral "10", Pos (21, 22))),
          Pos (0, 0)),
-        "ForBodyStart_3", "AfterFor_2");
+        "ForBodyStart_3", "AfterLoop_2");
      Label "ForBodyStart_3";
      AddFrame;
      Declare ("M", (Number (3, 0), Pos (51, 59)));
@@ -396,7 +398,7 @@ END;"
         "DischargeEnv_5", "Next_4");
      Label "DischargeEnv_5";
      DeleteFrame;
-     Goto ("AfterFor_2", None);
+     Goto ("AfterLoop_2", None);
      Label "Next_4";
      Call
        ((BinaryOp (".",
@@ -413,8 +415,8 @@ END;"
                             (Identifier "N", Pos (13, 13)),
                             (NumericLiteral "1", Pos (0, 0))),
                   Pos (0, 0)));
-     Goto ("BeforeFor_1", None);
-     Label "AfterFor_2";
+     Goto ("BeforeLoop_1", None);
+     Label "AfterLoop_2";
      DeleteFrame;
      DeleteFrame];;
 
@@ -433,45 +435,65 @@ BEGIN
   END LOOP;
 END;"
     [AddFrame;
+     Label "UserLabel_OUTER";
      AddFrame;
-     Declare ("N", (Number (38, 127), Pos (0, 0)));
-     Assignment ((Identifier "N", Pos (13, 13)),
-                 (NumericLiteral "1", Pos (18, 18)));
-     Label "BeforeFor_1";
+     Declare ("M", (Number (38, 127), Pos (0, 0)));
+     Assignment ((Identifier "M", Pos (25, 25)),
+                 (NumericLiteral "1", Pos (30, 30)));
+     Label "UserLabel_OUTER_BeforeLoop";
      GotoIf
        ((BinaryOp ("<=",
-                   (Identifier "N", Pos (13, 13)),
-                   (NumericLiteral "10", Pos (21, 22))),
+                   (Identifier "M", Pos (25, 25)),
+                   (NumericLiteral "10", Pos (33, 34))),
          Pos (0, 0)),
-        "ForBodyStart_3", "AfterFor_2");
-     Label "ForBodyStart_3";
+        "ForBodyStart_1", "UserLabel_OUTER_AfterLoop");
+     Label "ForBodyStart_1";
      AddFrame;
-     Declare ("M", (Number (3, 0), Pos (51, 59)));
+     Declare ("N", (Number (38, 127), Pos (0, 0)));
+     Assignment ((Identifier "N", Pos (51, 51)),
+                 (NumericLiteral "1", Pos (56, 56)));
+     Label "BeforeLoop_2";
      GotoIf
-       ((IsNull (Identifier "M", Pos (88, 88)),
-         Pos (88, 96)),
-        "DischargeEnv_5", "Next_4");
-     Label "DischargeEnv_5";
+       ((BinaryOp ("<=",
+                   (Identifier "N", Pos (51, 51)),
+                   (NumericLiteral "10", Pos (59, 60))),
+         Pos (0, 0)),
+        "ForBodyStart_4", "AfterLoop_3");
+     Label "ForBodyStart_4";
+     GotoIf
+       ((BinaryOp ("=",
+                   (Identifier "M", Pos (93, 93)),
+                   (NumericLiteral "2", Pos (97, 97))),
+         Pos (93, 97)),
+        "DischargeEnv_6", "Next_5");
+     Label "DischargeEnv_6";
      DeleteFrame;
-     Goto ("AfterFor_2", None);
-     Label "Next_4";
+     Goto ("UserLabel_OUTER_AfterLoop", None);
+     Label "Next_5";
      Call
        ((BinaryOp (".",
-                   (Identifier "DBMS_OUTPUT", Pos (105, 115)),
-                   (Identifier "PUT_LINE", Pos (117, 124))),
-         Pos (105, 124)),
+                   (Identifier "DBMS_OUTPUT", Pos (106, 116)),
+                   (Identifier "PUT_LINE", Pos (118, 125))),
+         Pos (106, 125)),
         [(BinaryOp ("+",
-                    (Identifier "N", Pos (126, 126)),
-                    (Identifier "M", Pos (130, 130))),
-          Pos (126, 130))]);
-     DeleteFrame;
-     Assignment ((Identifier "N", Pos (13, 13)),
+                    (Identifier "N", Pos (127, 127)),
+                    (Identifier "M", Pos (131, 131))),
+          Pos (127, 131))]);
+     Assignment ((Identifier "N", Pos (51, 51)),
                  (BinaryOp ("+",
-                            (Identifier "N", Pos (13, 13)),
+                            (Identifier "N", Pos (51, 51)),
                             (NumericLiteral "1", Pos (0, 0))),
                   Pos (0, 0)));
-     Goto ("BeforeFor_1", None);
-     Label "AfterFor_2";
+     Goto ("BeforeLoop_2", None);
+     Label "AfterLoop_3";
+     DeleteFrame;
+     Assignment ((Identifier "M", Pos (25, 25)),
+                 (BinaryOp ("+",
+                            (Identifier "M", Pos (25, 25)),
+                            (NumericLiteral "1", Pos (0, 0))),
+                  Pos (0, 0)));
+     Goto ("UserLabel_OUTER_BeforeLoop", None);
+     Label "UserLabel_OUTER_AfterLoop";
      DeleteFrame;
      DeleteFrame];;
 
