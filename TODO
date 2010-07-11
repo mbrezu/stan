@@ -45,7 +45,7 @@
 ** TODO collections and records
 ** TODO triggers
 ** TODO indexes
-** TODO packages
+** TODO packagse
 ** TODO error handling
 ** TODO CREATE TYPE, objects
 ** DONE statement ignore (with warning)
@@ -57,7 +57,11 @@
    A translator from the parse tree to the intermediate representation
    needed by the abstract interpreter.
 *** TODO tests for WHILE with label (nested whiles too)
+*** TODO simple EXIT implemented similarly to EXIT WHEN
 *** TODO test with three levels of for nesting
+*** TODO Function/Procedure compilation
+*** TODO initialization of variables from output parameters and SELECT INTO
+*** TODO track variable usage too
 *** DONE Define the IR
 *** TODO Write interpreter for simple instructions
     (with reference to the parse code, and with placeholders for

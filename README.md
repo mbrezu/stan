@@ -14,3 +14,7 @@ Besides, it looks like a nice learning project.
 ## Prerequisites
 
  * OUnit (<http://www.xs4all.nl/~mmzeeman/ocaml/>).
+
+## License
+
+GPLv3 (see the COPYING file).

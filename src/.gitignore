@@ -2,4 +2,5 @@
 *.cmo
 *.cmx
 *.o
+*.annot
 TAGS

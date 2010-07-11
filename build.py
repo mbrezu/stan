@@ -1,5 +1,21 @@
 #!/usr/bin/env python
 
+# STAN - a STatic ANalysis tool for PL/SQL. Copyright (C) 2010 Miron Brezuleanu
+
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see
+# <http://www.gnu.org/licenses/>.
+
 import sys
 from memoize import memoize, set_force_build
 
@@ -47,12 +63,12 @@ def compile_run(compiler, object_extension, modules, executable):
     package_list = ",".join(packages)
     run("mkdir -p bin/tests")
     for module in modules:
-        run("ocamlfind %s -c -thread -package %s -I src src/%s.ml" % (compiler,
+        run("ocamlfind %s -annot -g -c -package %s -I src src/%s.ml" % (compiler,
                                                                       package_list,
                                                                       module) )
     object_list = " ".join(["src/%s.%s" % (module, object_extension)
                             for module in modules])
-    run("ocamlfind %s -thread -o %s -linkpkg -package %s %s" % (compiler,
+    run("ocamlfind %s -g -o %s -linkpkg -package %s %s" % (compiler,
                                                                 executable,
                                                                 package_list,
                                                                 object_list))
